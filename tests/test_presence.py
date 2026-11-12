@@ -46,7 +46,7 @@ class Tests(unittest.TestCase):
             'artwork': 'https://i1.sndcdn.com/art.jpg',
             'url': 'https://soundcloud.com/artist/track'})
         self.assertEqual(track.fields()['large_image'], 'https://i1.sndcdn.com/art.jpg')
-        self.assertEqual(track.fields()['details'], 'A ')
+        self.assertEqual(track.fields()['name'], 'A ')
         self.assertIn('buttons', track.fields())
 
     def test_track_change_pause_resume_and_close(self):
@@ -64,7 +64,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(rpc.calls[-1], 'clear')
         clock[0] = 18
         controller.tick(first)
-        self.assertEqual(rpc.calls[-1]['details'], 'First')
+        self.assertEqual(rpc.calls[-1]['name'], 'First')
         controller.close()
         self.assertEqual(rpc.calls[-2:], ['clear', 'close'])
 
@@ -81,7 +81,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(good.calls, [])
         clock[0] = 10
         controller.tick(track)
-        self.assertEqual(good.calls[-1]['details'], 'Song')
+        self.assertEqual(good.calls[-1]['name'], 'Song')
 
     def test_latest_track_wins_during_throttle(self):
         rpc = FakeRPC()
@@ -92,8 +92,8 @@ class Tests(unittest.TestCase):
         controller.tick(Track('Skipped', 'Artist'))
         clock[0] = 6
         controller.tick(Track('Current', 'Artist'))
-        self.assertEqual(rpc.calls[-1]['details'], 'Current')
-        self.assertFalse(any(isinstance(c, dict) and c['details'] == 'Skipped' for c in rpc.calls))
+        self.assertEqual(rpc.calls[-1]['name'], 'Current')
+        self.assertFalse(any(isinstance(c, dict) and c['name'] == 'Skipped' for c in rpc.calls))
 
     def test_heartbeat_detects_disconnect_without_track_change(self):
         rpc = FakeRPC()
@@ -146,6 +146,13 @@ class Tests(unittest.TestCase):
         controller.tick(Track('Song','Artist',position=22,duration=126,sampled_at=1020))
         self.assertEqual(rpc.calls[-1]['start'],998)
         self.assertEqual(rpc.calls[-1]['end'],1124)
+
+    def test_card_is_title_then_artist_without_app_name_or_duplicate_line(self):
+        fields = Track('Винра (feat. 163ONMYNECK)', 'OG Buda').fields()
+        self.assertEqual(fields['name'], 'Винра (feat. 163ONMYNECK)')
+        self.assertEqual(fields['details'], 'OG Buda')
+        self.assertNotIn('state', fields)
+        self.assertNotIn('SoundCloudRPC', str(fields))
 
 
 if __name__ == '__main__':

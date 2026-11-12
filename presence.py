@@ -49,8 +49,10 @@ class Track:
         return self.sampled_at - self.position
 
     def fields(self) -> dict:
-        result = {'details': self.title.ljust(2),
-                  'state': (self.artist or 'SoundCloud').ljust(2)}
+        # Override the app-name line with the actual song; avoid a third line
+        # repeating the title below the registered application's name.
+        result = {'name': self.title.ljust(2),
+                  'details': (self.artist or 'SoundCloud').ljust(2)}
         if self.artwork:
             result.update(large_image=self.artwork, large_text=self.title.ljust(2))
         if self.url:
