@@ -147,11 +147,11 @@ class Tests(unittest.TestCase):
         self.assertEqual(rpc.calls[-1]['start'],998)
         self.assertEqual(rpc.calls[-1]['end'],1124)
 
-    def test_card_is_title_then_artist_without_app_name_or_duplicate_line(self):
+    def test_listening_card_uses_title_as_details_artist_as_state_and_keeps_status(self):
         fields = Track('Винра (feat. 163ONMYNECK)', 'OG Buda').fields()
         self.assertEqual(fields['name'], 'Винра (feat. 163ONMYNECK)')
-        self.assertEqual(fields['details'], 'OG Buda')
-        self.assertNotIn('state', fields)
+        self.assertEqual(fields['details'], 'Винра (feat. 163ONMYNECK)')
+        self.assertEqual(fields['state'], 'OG Buda')
         self.assertNotIn('SoundCloudRPC', str(fields))
 
 
