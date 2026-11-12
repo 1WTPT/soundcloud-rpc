@@ -46,7 +46,7 @@ class Tests(unittest.TestCase):
             'artwork': 'https://i1.sndcdn.com/art.jpg',
             'url': 'https://soundcloud.com/artist/track'})
         self.assertEqual(track.fields()['large_image'], 'https://i1.sndcdn.com/art.jpg')
-        self.assertEqual(track.fields()['name'], 'A ')
+        self.assertEqual(track.fields()['details'], 'A ')
         self.assertIn('buttons', track.fields())
 
     def test_track_change_pause_resume_and_close(self):
@@ -64,7 +64,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(rpc.calls[-1], 'clear')
         clock[0] = 18
         controller.tick(first)
-        self.assertEqual(rpc.calls[-1]['name'], 'First')
+        self.assertEqual(rpc.calls[-1]['details'], 'First')
         controller.close()
         self.assertEqual(rpc.calls[-2:], ['clear', 'close'])
 
@@ -81,7 +81,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(good.calls, [])
         clock[0] = 10
         controller.tick(track)
-        self.assertEqual(good.calls[-1]['name'], 'Song')
+        self.assertEqual(good.calls[-1]['details'], 'Song')
 
     def test_latest_track_wins_during_throttle(self):
         rpc = FakeRPC()
@@ -92,8 +92,8 @@ class Tests(unittest.TestCase):
         controller.tick(Track('Skipped', 'Artist'))
         clock[0] = 6
         controller.tick(Track('Current', 'Artist'))
-        self.assertEqual(rpc.calls[-1]['name'], 'Current')
-        self.assertFalse(any(isinstance(c, dict) and c['name'] == 'Skipped' for c in rpc.calls))
+        self.assertEqual(rpc.calls[-1]['details'], 'Current')
+        self.assertFalse(any(isinstance(c, dict) and c['details'] == 'Skipped' for c in rpc.calls))
 
     def test_heartbeat_detects_disconnect_without_track_change(self):
         rpc = FakeRPC()
@@ -147,9 +147,10 @@ class Tests(unittest.TestCase):
         self.assertEqual(rpc.calls[-1]['start'],998)
         self.assertEqual(rpc.calls[-1]['end'],1124)
 
-    def test_listening_card_uses_title_as_details_artist_as_state_and_keeps_status(self):
+    def test_listening_status_has_no_visible_suffix_but_card_keeps_song_and_artist(self):
         fields = Track('Винра (feat. 163ONMYNECK)', 'OG Buda').fields()
-        self.assertEqual(fields['name'], 'Винра (feat. 163ONMYNECK)')
+        self.assertEqual(fields['name'].replace('\u200b', ''), '')
+        self.assertEqual(len(fields['name']), 2)
         self.assertEqual(fields['details'], 'Винра (feat. 163ONMYNECK)')
         self.assertEqual(fields['state'], 'OG Buda')
         self.assertNotIn('SoundCloudRPC', str(fields))

@@ -50,8 +50,9 @@ class Track:
 
     def fields(self) -> dict:
         # Listening cards use details for the prominent song line and state for
-        # the artist. name independently controls the "Listening to ..." status.
-        result = {'name': self.title.ljust(2),
+        # the artist. Two zero-width spaces suppress the visible status suffix;
+        # omitting name would restore the registered application's name.
+        result = {'name': '\u200b\u200b',
                   'details': self.title.ljust(2),
                   'state': (self.artist or 'SoundCloud').ljust(2)}
         if self.artwork:
