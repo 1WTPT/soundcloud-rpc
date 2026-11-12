@@ -56,7 +56,9 @@ class Track:
                   'details': self.title.ljust(2),
                   'state': (self.artist or 'SoundCloud').ljust(2)}
         if self.artwork:
-            result.update(large_image=self.artwork, large_text=self.title.ljust(2))
+            # Listening cards can show the artwork caption as an album line.
+            # The song already has its own details line; do not repeat it there.
+            result['large_image'] = self.artwork
         if self.url:
             result['buttons'] = [{'label': 'Open on SoundCloud', 'url': self.url}]
         if self.started_at is not None:

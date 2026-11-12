@@ -32,7 +32,7 @@ jobs:
         run: >-
           python -c "import json; s=json.load(open('app_config.json'))['client_id']; assert isinstance(s,str) and s.isascii() and s.isdigit() and 17<=len(s)<=22, 'Set a public Discord Application ID in app_config.json before releasing'"
       - name: Build executable
-        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name SoundCloudRPC --icon assets/app.ico --add-data "assets/app.ico;assets" --add-data "reader.js;." --add-data "app_config.json;." --add-data "THIRD_PARTY_NOTICES.txt;." app.py
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name SoundCloudRPC --icon assets/app.ico --add-data "assets/app.ico;assets" --add-data "assets/fonts;assets/fonts" --add-data "reader.js;." --add-data "app_config.json;." --add-data "THIRD_PARTY_NOTICES.txt;." app.py
       - name: Compute SHA-256
         shell: pwsh
         run: |

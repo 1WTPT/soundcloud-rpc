@@ -2,6 +2,7 @@
 import logging
 import os
 import threading
+from pathlib import Path
 
 
 def finish_shutdown(stop, worker, destroy, timeout=1.5):
@@ -69,19 +70,79 @@ class WindowsTray:
             self.dispatcher.Dispose()
 
     def _install_toolbar(self):
-        from System.Windows.Forms import ToolStrip, ToolStripButton, DockStyle, ToolStripItemDisplayStyle, ToolStripGripStyle
+        from System.Drawing import Color, Font
+        from System.Windows.Forms import (ToolStrip, ToolStripButton, DockStyle,
+            ToolStripItemDisplayStyle, ToolStripGripStyle, ToolStripProfessionalRenderer, Padding)
         self.form.FormClosing += self._on_closing
         self.form.FormClosed += self._on_closed
         self.toolbar = ToolStrip()
         self.toolbar.Dock = DockStyle.Top
         self.toolbar.GripStyle = ToolStripGripStyle.Hidden
+        self.toolbar.AutoSize = False
+        self.toolbar.Height = 30
+        self.toolbar.Padding = Padding(8, 2, 8, 2)
+        self.toolbar.BackColor = Color.FromArgb(23, 23, 23)
+        self.toolbar.ForeColor = Color.FromArgb(184, 184, 184)
+        try:
+            import ctypes
+            from System.Drawing.Text import PrivateFontCollection
+            path = Path(self.icon_path).parent / 'fonts' / 'Nunito-Regular.ttf'
+            # ToolStrip uses GDI for text; register only within this process,
+            # and retain the GDI+ collection for the Font object's lifetime.
+            add_font = ctypes.windll.gdi32.AddFontResourceExW
+            add_font.argtypes = [ctypes.c_wchar_p, ctypes.c_uint, ctypes.c_void_p]
+            add_font.restype = ctypes.c_int
+            if not add_font(str(path), 0x10, None):
+                raise OSError('Could not load bundled Nunito font')
+            self.toolbar_fonts = PrivateFontCollection()
+            self.toolbar_fonts.AddFontFile(str(path))
+            self.toolbar.Font = Font(self.toolbar_fonts.Families[0], 10)
+        except Exception:
+            logging.getLogger(__name__).exception('Toolbar font unavailable')
+            self.toolbar.Font = Font('Segoe UI', 10)
+        self.toolbar_renderer = ToolStripProfessionalRenderer()
+        self.toolbar_renderer.RoundedEdges = False
+        self.toolbar_renderer.RenderToolStripBackground += self._paint_toolbar_background
+        self.toolbar_renderer.RenderToolStripBorder += self._paint_toolbar_border
+        self.toolbar_renderer.RenderButtonBackground += self._paint_toolbar_button
+        self.toolbar.Renderer = self.toolbar_renderer
         for label, handler in [('Reload',self._reload),('Restart',self._restart)]:
             button = ToolStripButton(label)
             button.DisplayStyle = ToolStripItemDisplayStyle.Text
+            button.ForeColor = self.toolbar.ForeColor
+            button.Padding = Padding(8, 0, 8, 0)
+            button.Margin = Padding(0, 0, 4, 0)
             button.Click += handler
             self.toolbar.Items.Add(button)
         self.form.Controls.Add(self.toolbar)
         self.toolbar.SendToBack()
+
+    def _paint_toolbar_background(self, sender, args):
+        from System.Drawing import SolidBrush
+        brush = SolidBrush(self.toolbar.BackColor)
+        try:
+            args.Graphics.FillRectangle(brush, self.toolbar.ClientRectangle)
+        finally:
+            brush.Dispose()
+
+    def _paint_toolbar_border(self, sender, args):
+        from System.Drawing import Color, Pen
+        pen = Pen(Color.FromArgb(38, 38, 38))
+        try:
+            args.Graphics.DrawLine(pen, 0, self.toolbar.Height - 1,
+                                   self.toolbar.Width, self.toolbar.Height - 1)
+        finally:
+            pen.Dispose()
+
+    def _paint_toolbar_button(self, sender, args):
+        from System.Drawing import Color, SolidBrush, Rectangle
+        item = args.Item
+        shade = 55 if item.Pressed else 39 if item.Selected else 23
+        brush = SolidBrush(Color.FromArgb(shade, shade, shade))
+        try:
+            args.Graphics.FillRectangle(brush, Rectangle(0, 0, item.Width, item.Height))
+        finally:
+            brush.Dispose()
 
     def _ui(self, action):
         from System import Action

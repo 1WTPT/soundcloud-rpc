@@ -49,6 +49,17 @@ class Tests(unittest.TestCase):
         self.assertEqual(track.fields()['details'], 'A ')
         self.assertIn('buttons', track.fields())
 
+    def test_listening_payload_has_only_song_and_artist_text(self):
+        from pypresence.payloads import Payload
+        fields = Track('Song title', 'Artist name',
+                       artwork='https://i1.sndcdn.com/art.jpg').fields()
+        activity = Payload.set_activity(activity_type=2, **fields).data['args']['activity']
+        self.assertEqual(activity['details'], 'Song title')
+        self.assertEqual(activity['state'], 'Artist name')
+        self.assertEqual(activity['assets']['large_image'], 'https://i1.sndcdn.com/art.jpg')
+        self.assertNotIn('large_text', activity['assets'])
+        self.assertEqual(str(activity).count('Song title'), 1)
+
     def test_track_change_pause_resume_and_close(self):
         rpc = FakeRPC()
         clock = [0]
