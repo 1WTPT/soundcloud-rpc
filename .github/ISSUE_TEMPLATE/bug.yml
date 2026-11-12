@@ -1,0 +1,29 @@
+name: Ошибка в приложении
+description: Сообщить об ошибке SoundCloud RPC
+title: "[Bug]: "
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Версия приложения
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Как воспроизвести
+      description: Что ты сделал и что произошло? Укажи, играет ли музыка в окне приложения.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемый результат
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Окружение и дополнительные сведения
+      description: Версия Windows, статус в заголовке окна и сообщения ошибки. Не прикладывай пароли, токены или браузерный профиль.

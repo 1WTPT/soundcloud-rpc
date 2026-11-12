@@ -1,0 +1,11 @@
+name: Предложить улучшение
+description: Идея для SoundCloud RPC
+title: "[Idea]: "
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Что хочется улучшить?
+      description: Опиши сценарий использования и желаемое поведение.
+    validations:
+      required: true

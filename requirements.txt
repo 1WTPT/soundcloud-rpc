@@ -1,0 +1,2 @@
+pywebview==6.2.1
+pypresence==4.6.2

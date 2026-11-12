@@ -1,0 +1,71 @@
+name: Windows executable
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: python -m pip install -r requirements-build.txt
+      - run: python -m unittest discover -s tests -v
+      - run: node --test tests/reader.test.cjs
+      - name: Check publisher configuration for tagged release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: >-
+          python -c "import json; s=json.load(open('app_config.json'))['client_id']; assert isinstance(s,str) and s.isascii() and s.isdigit() and 17<=len(s)<=22, 'Set a public Discord Application ID in app_config.json before releasing'"
+      - name: Build executable
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name SoundCloudRPC --icon assets/app.ico --add-data "reader.js;." --add-data "app_config.json;." --add-data "THIRD_PARTY_NOTICES.txt;." app.py
+      - name: Compute SHA-256
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash dist/SoundCloudRPC.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  SoundCloudRPC.exe" | Set-Content dist/SHA256SUMS.txt -Encoding ascii
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SoundCloudRPC-Windows-x64
+          path: |
+            dist/SoundCloudRPC.exe
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: SoundCloudRPC-Windows-x64
+          path: dist
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if [ -f "docs/RELEASE-$RELEASE_TAG.md" ]; then
+            gh release create "$RELEASE_TAG" dist/SoundCloudRPC.exe dist/SHA256SUMS.txt --draft --prerelease --verify-tag --title "SoundCloud RPC $RELEASE_TAG · Windows" --notes-file "docs/RELEASE-$RELEASE_TAG.md"
+          else
+            gh release create "$RELEASE_TAG" dist/SoundCloudRPC.exe dist/SHA256SUMS.txt --draft --prerelease --verify-tag --title "SoundCloud RPC $RELEASE_TAG · Windows" --generate-notes
+          fi
