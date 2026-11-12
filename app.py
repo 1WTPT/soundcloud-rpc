@@ -50,6 +50,10 @@ def client_id() -> str | None:
 
 
 def run() -> None:
+    if sys.platform == 'win32':
+        # A stable taskbar identity and an explicit multi-resolution window icon.
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('1WTPT.SoundCloudRPC')
     DATA.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,
@@ -63,6 +67,7 @@ def run() -> None:
 
     import webview
     from pypresence import Presence
+    from pypresence.types import ActivityType
 
     script = (ROOT / 'reader.js').read_text(encoding='utf-8')
     stop = threading.Event()
@@ -76,7 +81,8 @@ def run() -> None:
 
     def worker():
         controller = PresenceController(lambda: Presence(
-            app_id, connection_timeout=5, response_timeout=5))
+            app_id, connection_timeout=5, response_timeout=5),
+            activity_type=ActivityType.LISTENING)
         title = ''
         try:
             while not stop.is_set():
@@ -103,6 +109,7 @@ def run() -> None:
         # WebView2 profile stays in AppData, including SoundCloud login cookies.
         webview.settings['ALLOW_FILE_URLS'] = False
         webview.start(thread.start, gui='edgechromium', private_mode=False,
+                      icon=str(ROOT / 'assets' / 'app.ico'),
                       storage_path=str(DATA / 'browser'))
     finally:
         stop.set()

@@ -108,6 +108,45 @@ class Tests(unittest.TestCase):
         controller.tick(track)
         self.assertIsNone(controller.rpc)
 
+    def test_timestamps_match_current_position(self):
+        track = Track('Song', 'Artist', position=16, duration=126, sampled_at=1000)
+        self.assertEqual(track.fields()['start'], 984)
+        self.assertEqual(track.fields()['end'], 1110)
+
+    def test_invalid_or_unknown_duration_omits_progress(self):
+        for pos, duration in ((16, 0), (16, None), (200, 126), (True, 126),
+                              (float('nan'), 126), (16, float('inf'))):
+            track = track_from_snapshot({'playing':True, 'title':'Song',
+                'position':pos, 'duration':duration})
+            self.assertNotIn('start', track.fields())
+            self.assertNotIn('end', track.fields())
+
+    def test_time_passes_without_spam_but_seek_updates_timestamps(self):
+        rpc = FakeRPC()
+        clock = [0]
+        controller = PresenceController(lambda: rpc, lambda: clock[0], activity_type=2)
+        controller.tick(Track('Song','Artist',position=16,duration=126,sampled_at=1000))
+        clock[0] = 6
+        controller.tick(Track('Song','Artist',position=22,duration=126,sampled_at=1006))
+        self.assertEqual(sum(isinstance(c,dict) for c in rpc.calls),1)
+        clock[0] = 8
+        controller.tick(Track('Song','Artist',position=90,duration=126,sampled_at=1008))
+        self.assertEqual(rpc.calls[-1]['start'],918)
+        self.assertEqual(rpc.calls[-1]['end'],1044)
+        self.assertEqual(rpc.calls[-1]['activity_type'],2)
+
+    def test_resume_reanchors_progress(self):
+        rpc = FakeRPC()
+        clock = [0]
+        controller = PresenceController(lambda: rpc, lambda: clock[0])
+        controller.tick(Track('Song','Artist',position=16,duration=126,sampled_at=1000))
+        clock[0] = 6
+        controller.tick(None)
+        clock[0] = 20
+        controller.tick(Track('Song','Artist',position=22,duration=126,sampled_at=1020))
+        self.assertEqual(rpc.calls[-1]['start'],998)
+        self.assertEqual(rpc.calls[-1]['end'],1124)
+
 
 if __name__ == '__main__':
     unittest.main()

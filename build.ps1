@@ -7,7 +7,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed.' }
     & .\.venv\Scripts\python.exe -m unittest discover -s tests -v
     if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
-    & .\.venv\Scripts\python.exe -m PyInstaller --noconfirm --clean --onefile --windowed --name SoundCloudRPC --icon assets/app.ico --add-data 'reader.js;.' --add-data 'app_config.json;.' --add-data 'THIRD_PARTY_NOTICES.txt;.' app.py
+    & .\.venv\Scripts\python.exe -m PyInstaller --noconfirm --clean --onefile --windowed --name SoundCloudRPC --icon assets/app.ico --add-data 'assets/app.ico;assets' --add-data 'reader.js;.' --add-data 'app_config.json;.' --add-data 'THIRD_PARTY_NOTICES.txt;.' app.py
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
     Write-Host 'Ready: dist\SoundCloudRPC.exe'
 } finally {
