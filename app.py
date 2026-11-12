@@ -12,6 +12,7 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog
 
 from presence import PresenceController, track_from_snapshot
+from tray import WindowsTray
 
 ROOT = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
 DATA = Path(os.environ.get('LOCALAPPDATA', Path.home())) / 'SoundCloudRPC'
@@ -105,6 +106,8 @@ def run() -> None:
             controller.close()
 
     thread = threading.Thread(target=worker, name='discord-rpc', daemon=True)
+    tray = WindowsTray(window, stop, thread, ROOT / 'assets' / 'app.ico')
+    window.events.shown += tray.install
     try:
         # WebView2 profile stays in AppData, including SoundCloud login cookies.
         webview.settings['ALLOW_FILE_URLS'] = False
