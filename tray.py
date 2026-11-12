@@ -18,6 +18,7 @@ class WindowsTray:
         self.install_lock = threading.Lock()
         self.installed = False
         self.icon = None
+        self.restart_requested = False
 
     def install(self):
         with self.install_lock:
@@ -29,15 +30,29 @@ class WindowsTray:
 
     def _install_gui(self):
         from System.Drawing import Icon
-        from System.Windows.Forms import ContextMenuStrip, NotifyIcon
+        from System.Windows.Forms import ContextMenuStrip, NotifyIcon, ToolStrip, ToolStripButton, DockStyle, ToolStripItemDisplayStyle, ToolStripGripStyle
         try:
             self.form = self.window.native
             self.image = Icon(self.icon_path)
             self.menu = ContextMenuStrip()
             self.open_item = self.menu.Items.Add('Open')
+            self.reload_item = self.menu.Items.Add('Reload')
+            self.restart_item = self.menu.Items.Add('Restart')
             self.close_item = self.menu.Items.Add('Close')
             self.open_item.Click += self._open
+            self.reload_item.Click += self._reload
+            self.restart_item.Click += self._restart
             self.close_item.Click += self._close
+            self.toolbar = ToolStrip()
+            self.toolbar.Dock = DockStyle.Top
+            self.toolbar.GripStyle = ToolStripGripStyle.Hidden
+            for label, handler in [('Reload', self._reload), ('Restart', self._restart)]:
+                button = ToolStripButton(label)
+                button.DisplayStyle = ToolStripItemDisplayStyle.Text
+                button.Click += handler
+                self.toolbar.Items.Add(button)
+            self.form.Controls.Add(self.toolbar)
+            self.toolbar.SendToBack()
             self.icon = NotifyIcon()
             self.icon.Icon = self.image
             self.icon.Text = 'SoundCloud RPC'
@@ -63,6 +78,19 @@ class WindowsTray:
         if not self.exiting.is_set() and self.icon and self.icon.Visible:
             args.Cancel = True
             self.form.Hide()
+
+    def _reload(self, *_):
+        if self.exiting.is_set():
+            return
+        try:
+            self.form.browser.webview.CoreWebView2.Reload()
+        except Exception:
+            logging.getLogger(__name__).exception('Reload failed; use Restart')
+
+    def _restart(self, *_):
+        if not self.exiting.is_set():
+            self.restart_requested = True
+            self._close()
 
     def _close(self, *_):
         if self.exiting.is_set():

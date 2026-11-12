@@ -13,6 +13,7 @@ from tkinter import messagebox, simpledialog
 
 from presence import PresenceController, track_from_snapshot
 from tray import WindowsTray
+from recovery import PageReader, launch_restart, wait_for_parent
 
 ROOT = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
 DATA = Path(os.environ.get('LOCALAPPDATA', Path.home())) / 'SoundCloudRPC'
@@ -80,21 +81,27 @@ def run() -> None:
     window.events.loaded += lambda: ready.set()
     window.events.closed += lambda: stop.set()
 
+    page_reader = PageReader(lambda: window.evaluate_js(script))
     def worker():
         controller = PresenceController(lambda: Presence(
             app_id, connection_timeout=5, response_timeout=5),
             activity_type=ActivityType.LISTENING)
         title = ''
+        page_failed = False
         try:
             while not stop.is_set():
                 track = None
                 if ready.is_set():
                     try:
-                        track = track_from_snapshot(window.evaluate_js(script))
-                    except Exception:
-                        logging.getLogger(__name__).debug('Page unavailable', exc_info=True)
+                        track = track_from_snapshot(page_reader.read())
+                        page_failed = False
+                    except Exception as exc:
+                        if not page_failed:
+                            logging.getLogger(__name__).warning('Page read failed: %s', exc)
+                        page_failed = True
                 controller.tick(track)
-                new_title = 'SoundCloud RPC · ' + controller.status
+                new_title = 'SoundCloud RPC · ' + ('страница не отвечает — Reload / Restart'
+                    if page_failed else controller.status)
                 if new_title != title and not stop.is_set():
                     try:
                         window.set_title(new_title)
@@ -118,11 +125,14 @@ def run() -> None:
         stop.set()
         if thread.ident:
             thread.join(timeout=7)
+    return tray.restart_requested
 
 
 if __name__ == '__main__':
     try:
-        run()
+        wait_for_parent()
+        if run():
+            launch_restart()
     except Exception:
         logging.exception('Application failed')
         root = tk.Tk()
