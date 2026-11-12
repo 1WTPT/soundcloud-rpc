@@ -13,7 +13,7 @@ from tkinter import messagebox, simpledialog
 
 from presence import PresenceController, track_from_snapshot
 from tray import WindowsTray
-from recovery import PageReader, launch_restart, wait_for_parent
+from recovery import PageReader, wait_for_parent
 
 ROOT = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
 DATA = Path(os.environ.get('LOCALAPPDATA', Path.home())) / 'SoundCloudRPC'
@@ -124,15 +124,13 @@ def run() -> None:
     finally:
         stop.set()
         if thread.ident:
-            thread.join(timeout=7)
-    return tray.restart_requested
+            thread.join(timeout=1.5)
 
 
 if __name__ == '__main__':
     try:
         wait_for_parent()
-        if run():
-            launch_restart()
+        run()
     except Exception:
         logging.exception('Application failed')
         root = tk.Tk()

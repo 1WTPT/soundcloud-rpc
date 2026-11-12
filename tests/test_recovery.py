@@ -38,5 +38,6 @@ class RecoveryTests(unittest.TestCase):
         tray=WindowsTray(None,None,None,'unused')
         tray.form=SimpleNamespace(browser=SimpleNamespace(webview=SimpleNamespace(
             CoreWebView2=SimpleNamespace(Reload=lambda: calls.append('reload')))))
+        tray._ui=lambda action: action()
         tray._reload()
         self.assertEqual(calls,['reload'])

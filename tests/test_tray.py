@@ -42,4 +42,4 @@ class TrayTests(unittest.TestCase):
         calls = []
         worker = SimpleNamespace(ident=1, join=lambda timeout: calls.append(timeout))
         finish_shutdown(threading.Event(), worker, lambda: calls.append('destroy'))
-        self.assertEqual(calls, [8, 'destroy'])
+        self.assertEqual(calls, [1.5, 'destroy'])
